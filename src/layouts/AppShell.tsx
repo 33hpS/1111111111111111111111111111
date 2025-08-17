@@ -1,10 +1,26 @@
 /**
- * AppShell.tsx - ТОЧНОЕ исправление для полной ширины экрана
- * Заменить ПОЛНОСТЬЮ содержимое файла src/layouts/AppShell.tsx
+ * AppShell.tsx - Enterprise-grade Layout Architecture
+ * 
+ * Технические принципы:
+ * - Unified layout system с фиксированным sidebar
+ * - Type-safe navigation с строгой типизацией
+ * - Performance-optimized rendering через мemoization
+ * - Comprehensive error boundaries
+ * - Accessibility compliance (WCAG 2.1 AA)
+ * - Cross-platform compatibility
  */
 
-import React, { memo, useMemo, useState, useEffect, useCallback } from 'react'
-import { Link, Outlet, useLocation } from 'react-router'
+import React, { 
+  memo, 
+  useMemo, 
+  useState, 
+  useEffect, 
+  useCallback, 
+  Suspense,
+  ErrorInfo,
+  ReactNode 
+} from 'react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import {
   Droplets,
   Home as HomeIcon,
@@ -17,391 +33,704 @@ import {
   Menu,
   X,
   SatelliteDish,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react'
+
+// Core components
 import ToasterProvider from '../components/common/ToasterProvider'
 import LoadingOverlay from '../components/common/LoadingOverlay'
 import ErrorBoundary from '../components/common/ErrorBoundary'
 import ThemeToggle, { applyStoredTheme } from '../components/common/ThemeToggle'
 import LanguageSwitcher from '../components/common/LanguageSwitcher'
 import AccentThemeSwitcher from '../components/common/AccentThemeSwitcher'
+
+// Services & utilities
 import { useTranslation } from 'react-i18next'
 import { isSupabaseEnabled, testSupabaseConnection } from '../services/supabase'
 import { readAccent, applyAccent } from '../themeAccent'
 
+// ===== TYPE DEFINITIONS =====
+
 /**
- * NavItem — пункт боковой навигации
+ * Navigation item configuration
  */
 interface NavItem {
-  to: string
-  i18nKey: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
+  readonly to: string
+  readonly i18nKey: string
+  readonly icon: React.ComponentType<{ size?: number; className?: string }>
+  readonly ariaLabel?: string
 }
 
 /**
- * Базовый список пунктов навигации
+ * Supabase connection state
  */
-const BASE_NAV_ITEMS: NavItem[] = [
-  { to: '/', i18nKey: 'nav.home', icon: HomeIcon },
-  { to: '/collections', i18nKey: 'nav.collections', icon: Grid2X2 },
-  { to: '/products', i18nKey: 'nav.products', icon: Package },
-  { to: '/materials', i18nKey: 'nav.materials', icon: Layers },
-  { to: '/pricelist', i18nKey: 'nav.pricelist', icon: FileSpreadsheet },
-  { to: '/settings', i18nKey: 'nav.settings', icon: Settings },
-  { to: '/journal', i18nKey: 'nav.journal', icon: BookOpenCheck },
-]
+interface SupabaseState {
+  readonly enabled: boolean
+  readonly status: 'checking' | 'ok' | 'error' | null
+}
 
-function getTitleKeyByPath(pathname: string, items: NavItem[]): string {
-  const item = items.find((n) => n.to === pathname)
+/**
+ * Application initialization state
+ */
+interface AppState {
+  readonly booting: boolean
+  readonly error: Error | null
+}
+
+// ===== CONSTANTS =====
+
+/**
+ * Base navigation structure - immutable configuration
+ */
+const BASE_NAV_ITEMS: readonly NavItem[] = [
+  { to: '/', i18nKey: 'nav.home', icon: HomeIcon, ariaLabel: 'Главная страница' },
+  { to: '/collections', i18nKey: 'nav.collections', icon: Grid2X2, ariaLabel: 'Управление коллекциями' },
+  { to: '/products', i18nKey: 'nav.products', icon: Package, ariaLabel: 'Каталог продукции' },
+  { to: '/materials', i18nKey: 'nav.materials', icon: Layers, ariaLabel: 'База материалов' },
+  { to: '/pricelist', i18nKey: 'nav.pricelist', icon: FileSpreadsheet, ariaLabel: 'Генерация прайс-листов' },
+  { to: '/settings', i18nKey: 'nav.settings', icon: Settings, ariaLabel: 'Конфигурация системы' },
+  { to: '/journal', i18nKey: 'nav.journal', icon: BookOpenCheck, ariaLabel: 'Журнал активности' },
+] as const
+
+/**
+ * Performance-critical constants
+ */
+const SIDEBAR_WIDTH = 320 // pixels
+const HEADER_HEIGHT = 64 // pixels
+const MOBILE_BREAKPOINT = 768 // pixels
+
+// ===== UTILITY FUNCTIONS =====
+
+/**
+ * Determines page title key from current pathname
+ */
+function getTitleKeyByPath(pathname: string, items: readonly NavItem[]): string {
+  const normalizedPath = pathname === '/' ? '/' : pathname.replace(/\/$/, '')
+  const item = items.find((n) => n.to === normalizedPath)
   return item?.i18nKey || 'nav.home'
 }
 
+/**
+ * Fallback translation provider with type safety
+ */
 function labelFallback(i18nKey: string, lang: string): string {
-  const L = (r: string, e: string, k: string) => (lang.startsWith('en') ? e : lang.startsWith('ky') ? k : r)
-
-  switch (i18nKey) {
-    case 'nav.home': return L('Главная', 'Home', 'Башкы')
-    case 'nav.collections': return L('Коллекции', 'Collections', 'Коллекциялар')
-    case 'nav.products': return L('Изделия', 'Products', 'Буюмдар')
-    case 'nav.materials': return L('Материалы', 'Materials', 'Материалдар')
-    case 'nav.pricelist': return L('Прайс-лист', 'Price List', 'Баа тизмеси')
-    case 'nav.settings': return L('Настройки', 'Settings', 'Жөндөөлөр')
-    case 'nav.journal': return L('Журнал', 'Journal', 'Журнал')
-    case 'nav.dev': return L('Dev', 'Dev', 'Dev')
-    default: return i18nKey
+  const getTranslation = (ru: string, en: string, ky: string): string => {
+    if (lang.startsWith('en')) return en
+    if (lang.startsWith('ky')) return ky
+    return ru
   }
+
+  const translations: Record<string, [string, string, string]> = {
+    'nav.home': ['Главная', 'Home', 'Башкы'],
+    'nav.collections': ['Коллекции', 'Collections', 'Коллекциялар'],
+    'nav.products': ['Изделия', 'Products', 'Буюмдар'],
+    'nav.materials': ['Материалы', 'Materials', 'Материалдар'],
+    'nav.pricelist': ['Прайс-лист', 'Price List', 'Баа тизмеси'],
+    'nav.settings': ['Настройки', 'Settings', 'Жөндөөлөр'],
+    'nav.journal': ['Журнал', 'Journal', 'Журнал'],
+    'nav.dev': ['Dev', 'Dev', 'Dev'],
+  } as const
+
+  const translation = translations[i18nKey]
+  return translation ? getTranslation(...translation) : i18nKey
 }
 
 /**
- * SidebarLink — ссылка в боковой панели
+ * Detects development tools visibility state
  */
-interface SidebarLinkProps {
-  to: string
-  i18nKey: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
-  active: boolean
-  onClick?: () => void
+function useDevToolsVisibility(): boolean {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const checkVisibility = () => {
+      const devEnabled = localStorage.getItem('wasser_devtools') === '1'
+      setVisible(devEnabled)
+    }
+
+    // Initial check
+    checkVisibility()
+
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'wasser_devtools') {
+        checkVisibility()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  return visible
 }
 
-const SidebarLink = memo(function SidebarLink({ to, i18nKey, icon: Icon, active, onClick }: SidebarLinkProps) {
+// ===== COMPONENT DEFINITIONS =====
+
+/**
+ * SidebarLink - Optimized navigation link component
+ */
+interface SidebarLinkProps {
+  readonly to: string
+  readonly i18nKey: string
+  readonly icon: React.ComponentType<{ size?: number; className?: string }>
+  readonly active: boolean
+  readonly ariaLabel?: string
+  readonly onClick?: () => void
+}
+
+const SidebarLink = memo<SidebarLinkProps>(({ 
+  to, 
+  i18nKey, 
+  icon: Icon, 
+  active, 
+  ariaLabel,
+  onClick 
+}) => {
   const { t, i18n } = useTranslation()
-  const label = t(i18nKey, { defaultValue: labelFallback(i18nKey, i18n.language || 'ru') })
+  
+  const linkClasses = useMemo(() => {
+    const baseClasses = 'sidebar-nav-link'
+    return active ? `${baseClasses} active` : baseClasses
+  }, [active])
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    onClick?.()
+    
+    // Analytics tracking could be added here
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Navigation: ${to}`)
+    }
+  }, [onClick, to])
 
   return (
     <Link
       to={to}
-      onClick={onClick}
-      className={`
-        group flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all duration-200
-        ${active 
-          ? 'text-white font-medium shadow-sm' 
-          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-        }
-      `}
+      className={linkClasses}
+      onClick={handleClick}
       aria-current={active ? 'page' : undefined}
-      title={label}
-      style={
-        active
-          ? {
-              backgroundColor: 'var(--accent-600)',
-              color: 'white',
-            }
-          : undefined
-      }
+      aria-label={ariaLabel || t(i18nKey, { 
+        defaultValue: labelFallback(i18nKey, i18n.language || 'ru') 
+      })}
+      role="menuitem"
     >
-      <Icon
-        size={18}
-        className={active ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}
-      />
-      <span className="truncate">{label}</span>
+      <Icon size={20} className="shrink-0" aria-hidden="true" />
+      <span className="truncate">
+        {t(i18nKey, { defaultValue: labelFallback(i18nKey, i18n.language || 'ru') })}
+      </span>
     </Link>
   )
 })
 
-function localeForLang(lang: string): string {
-  if (lang.startsWith('ky')) return 'ky-KG'
-  if (lang.startsWith('en')) return 'en-US'
-  return 'ru-RU'
-}
-
-type SupaStatus = 'idle' | 'checking' | 'ok' | 'error'
+SidebarLink.displayName = 'SidebarLink'
 
 /**
- * AppShell — ИСПРАВЛЕННЫЙ layout с полной шириной
+ * SupabaseStatusIndicator - Connection status component
  */
-const AppShell = memo(function AppShell(): React.ReactElement {
-  const { pathname } = useLocation()
-  const { i18n, t } = useTranslation()
+interface SupabaseStatusProps {
+  readonly state: SupabaseState
+}
 
-  useEffect(() => {
-    applyStoredTheme()
-    try {
-      applyAccent(readAccent())
-    } catch {}
-  }, [])
+const SupabaseStatusIndicator = memo<SupabaseStatusProps>(({ state }) => {
+  const statusConfig = useMemo(() => {
+    if (!state.enabled) {
+      return { 
+        color: 'bg-gray-400', 
+        text: 'OFF',
+        ariaLabel: 'Supabase отключен'
+      }
+    }
+    
+    switch (state.status) {
+      case 'ok':
+        return { 
+          color: 'bg-emerald-500', 
+          text: 'OK',
+          ariaLabel: 'Supabase подключен'
+        }
+      case 'checking':
+        return { 
+          color: 'bg-yellow-500', 
+          text: '...',
+          ariaLabel: 'Проверка соединения с Supabase'
+        }
+      case 'error':
+        return { 
+          color: 'bg-red-500', 
+          text: 'ERR',
+          ariaLabel: 'Ошибка подключения к Supabase'
+        }
+      default:
+        return { 
+          color: 'bg-gray-400', 
+          text: '—',
+          ariaLabel: 'Статус Supabase неизвестен'
+        }
+    }
+  }, [state.enabled, state.status])
 
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
+  return (
+    <div 
+      className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 text-xs"
+      title={statusConfig.ariaLabel}
+      role="status"
+      aria-label={statusConfig.ariaLabel}
+    >
+      <div 
+        className={`w-2 h-2 rounded-full ${statusConfig.color}`} 
+        aria-hidden="true"
+      />
+      <span className="text-gray-600 font-medium">
+        {statusConfig.text}
+      </span>
+    </div>
+  )
+})
+
+SupabaseStatusIndicator.displayName = 'SupabaseStatusIndicator'
+
+/**
+ * LoadingFallback - Suspense fallback component
+ */
+const LoadingFallback = memo(() => (
+  <div className="flex items-center justify-center h-64" role="status" aria-label="Загрузка">
+    <Loader2 className="w-8 h-8 animate-spin text-blue-600" aria-hidden="true" />
+    <span className="sr-only">Загрузка содержимого...</span>
+  </div>
+))
+
+LoadingFallback.displayName = 'LoadingFallback'
+
+/**
+ * ErrorFallback - Error boundary fallback
+ */
+interface ErrorFallbackProps {
+  readonly error: Error
+  readonly resetError: () => void
+}
+
+const ErrorFallback = memo<ErrorFallbackProps>(({ error, resetError }) => (
+  <div className="flex flex-col items-center justify-center h-64 p-6 text-center" role="alert">
+    <AlertTriangle className="w-12 h-12 text-red-500 mb-4" aria-hidden="true" />
+    <h2 className="text-lg font-semibold text-gray-900 mb-2">
+      Произошла ошибка
+    </h2>
+    <p className="text-gray-600 mb-4 max-w-md">
+      {error.message || 'Неожиданная ошибка в приложении'}
+    </p>
+    <button
+      onClick={resetError}
+      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+    >
+      Попробовать снова
+    </button>
+    {process.env.NODE_ENV === 'development' && (
+      <details className="mt-4 text-xs text-gray-500">
+        <summary>Детали ошибки (dev)</summary>
+        <pre className="mt-2 text-left whitespace-pre-wrap max-w-full overflow-auto">
+          {error.stack}
+        </pre>
+      </details>
+    )}
+  </div>
+))
+
+ErrorFallback.displayName = 'ErrorFallback'
+
+/**
+ * AppErrorBoundary - Application-level error boundary
+ */
+class AppErrorBoundary extends React.Component<
+  { children: ReactNode; fallback: React.ComponentType<ErrorFallbackProps> },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode; fallback: React.ComponentType<ErrorFallbackProps> }) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('AppShell Error:', error, errorInfo)
+    
+    // Error reporting service integration point
+    if (process.env.NODE_ENV === 'production') {
+      // Send to error reporting service
+      // reportError(error, errorInfo)
+    }
+  }
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      const FallbackComponent = this.props.fallback
+      return (
+        <FallbackComponent 
+          error={this.state.error} 
+          resetError={() => this.setState({ hasError: false, error: null })}
+        />
+      )
+    }
+
+    return this.props.children
+  }
+}
+
+// ===== MAIN COMPONENT =====
+
+/**
+ * AppShell - Main layout component with enterprise-grade architecture
+ */
+const AppShell = memo(() => {
+  // ===== STATE MANAGEMENT =====
   
-  const closeSidebar = useCallback(() => {
-    setSidebarOpen(false)
-  }, [])
+  const [appState, setAppState] = useState<AppState>({
+    booting: true,
+    error: null
+  })
+  
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [supabaseState, setSupabaseState] = useState<SupabaseState>({
+    enabled: false,
+    status: null
+  })
+
+  // ===== HOOKS =====
+  
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
+  const showDevTools = useDevToolsVisibility()
+
+  // ===== COMPUTED VALUES =====
+  
+  const navItems = useMemo((): readonly NavItem[] => {
+    const items = [...BASE_NAV_ITEMS]
+    if (showDevTools) {
+      items.push({ 
+        to: '/dev', 
+        i18nKey: 'nav.dev', 
+        icon: SatelliteDish, 
+        ariaLabel: 'Инструменты разработчика' 
+      })
+    }
+    return items
+  }, [showDevTools])
+
+  const activePath = useMemo(() => {
+    return location.pathname === '/' ? '/' : location.pathname.replace(/\/$/, '')
+  }, [location.pathname])
+
+  const titleKey = useMemo(() => {
+    return getTitleKeyByPath(activePath, navItems)
+  }, [activePath, navItems])
+
+  const currentTime = useMemo(() => {
+    return new Date().toLocaleString(
+      i18n.language === 'en' ? 'en-US' : 'ru-RU',
+      {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }
+    )
+  }, [i18n.language])
+
+  // ===== EVENT HANDLERS =====
   
   const openSidebar = useCallback(() => {
     setSidebarOpen(true)
+    document.body.style.overflow = 'hidden' // Prevent scroll
   }, [])
 
+  const closeSidebar = useCallback(() => {
+    setSidebarOpen(false)
+    document.body.style.overflow = '' // Restore scroll
+  }, [])
+
+  const handleKeyboardNavigation = useCallback((e: KeyboardEvent) => {
+    // Keyboard shortcuts for navigation
+    if (e.altKey && e.key >= '1' && e.key <= '9') {
+      const index = parseInt(e.key) - 1
+      const targetItem = navItems[index]
+      if (targetItem) {
+        navigate(targetItem.to)
+        e.preventDefault()
+      }
+    }
+    
+    // ESC to close sidebar
+    if (e.key === 'Escape' && sidebarOpen) {
+      closeSidebar()
+    }
+  }, [navigate, navItems, sidebarOpen, closeSidebar])
+
+  // ===== EFFECTS =====
+  
+  /**
+   * Application initialization effect
+   */
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && sidebarOpen) {
-        closeSidebar()
+    const initializeApplication = async () => {
+      try {
+        // Theme initialization
+        applyStoredTheme()
+        const accent = readAccent()
+        if (accent) applyAccent(accent)
+
+        // Supabase connection check
+        const supaEnabled = isSupabaseEnabled()
+        setSupabaseState({ enabled: supaEnabled, status: supaEnabled ? 'checking' : null })
+
+        if (supaEnabled) {
+          try {
+            await testSupabaseConnection()
+            setSupabaseState(prev => ({ ...prev, status: 'ok' }))
+          } catch (error) {
+            console.warn('Supabase connection failed:', error)
+            setSupabaseState(prev => ({ ...prev, status: 'error' }))
+          }
+        }
+
+        // Mark app as initialized
+        setAppState({ booting: false, error: null })
+
+        // Performance measurement
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚀 AppShell initialized successfully')
+        }
+
+      } catch (error) {
+        console.error('Application initialization failed:', error)
+        setAppState({ 
+          booting: false, 
+          error: error instanceof Error ? error : new Error('Unknown initialization error')
+        })
       }
     }
 
+    initializeApplication()
+  }, [])
+
+  /**
+   * Keyboard navigation effect
+   */
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyboardNavigation)
+    return () => document.removeEventListener('keydown', handleKeyboardNavigation)
+  }, [handleKeyboardNavigation])
+
+  /**
+   * Mobile sidebar effect - handle body scroll lock
+   */
+  useEffect(() => {
     if (sidebarOpen) {
-      document.addEventListener('keydown', handleKeyDown)
-      return () => document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
     }
-  }, [sidebarOpen, closeSidebar])
 
-  const [booting, setBooting] = useState<boolean>(true)
-  useEffect(() => {
-    const tmr = setTimeout(() => setBooting(false), 450)
-    return () => clearTimeout(tmr)
-  }, [])
-
-  const [devVisible, setDevVisible] = useState<boolean>(false)
-
-  const recomputeDevVisible = useCallback(() => {
-    try {
-      const lsFlag = localStorage.getItem('wasser_devtools') === '1'
-      const supaOn = isSupabaseEnabled()
-      setDevVisible(Boolean(lsFlag || supaOn))
-    } catch {
-      setDevVisible(false)
+    return () => {
+      document.body.style.overflow = ''
     }
-  }, [])
+  }, [sidebarOpen])
 
-  const [supa, setSupa] = useState<{ enabled: boolean; status: SupaStatus }>({ 
-    enabled: false, 
-    status: 'idle' 
-  })
+  // ===== RENDER LOGIC =====
 
-  const checkSupa = useCallback(async () => {
-    const enabled = isSupabaseEnabled()
-    if (!enabled) {
-      setSupa({ enabled: false, status: 'idle' })
-      return
-    }
-    setSupa({ enabled: true, status: 'checking' })
-    try {
-      const ok = await testSupabaseConnection('materials')
-      setSupa({ enabled: true, status: ok ? 'ok' : 'error' })
-    } catch {
-      setSupa({ enabled: true, status: 'error' })
-    }
-  }, [])
-
-  useEffect(() => {
-    recomputeDevVisible()
-    checkSupa()
-
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'wasser_devtools' || e.key === 'wasser_supabase_cfg') {
-        recomputeDevVisible()
-        checkSupa()
-      }
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [recomputeDevVisible, checkSupa])
-
-  const navItems: NavItem[] = useMemo(() => {
-    const items = [...BASE_NAV_ITEMS]
-    if (devVisible) {
-      items.push({ to: '/dev', i18nKey: 'nav.dev', icon: SatelliteDish })
-    }
-    return items
-  }, [devVisible])
-
-  const activePath = pathname
-  const titleKey = useMemo(() => getTitleKeyByPath(activePath, navItems), [activePath, navItems])
-
-  const nowString = useMemo(() => {
-    try {
-      const loc = localeForLang(i18n.language || 'ru')
-      return new Date().toLocaleString(loc, { dateStyle: 'medium', timeStyle: 'short' })
-    } catch {
-      return new Date().toLocaleString()
-    }
-  }, [i18n.language])
-
-  const supaStatusLabel = (enabled: boolean, status: SupaStatus, lang: string): string => {
-    const L = (r: string, e: string, k: string) => (lang.startsWith('en') ? e : lang.startsWith('ky') ? k : r)
-    if (!enabled) return L('Выключено', 'Disabled', 'Өчүрүлгөн')
-    if (status === 'checking') return L('Проверка', 'Checking', 'Текшерүү')
-    if (status === 'ok') return L('Онлайн', 'Online', 'Онлайн')
-    return L('Офлайн', 'Offline', 'Оффлайн')
-  }
-
-  const renderSupaPill = () => {
-    const colorDot =
-      supa.enabled
-        ? supa.status === 'ok'
-          ? 'bg-emerald-500'
-          : supa.status === 'checking'
-            ? 'bg-yellow-500'
-            : 'bg-red-500'
-        : 'bg-gray-400'
-
-    return (
-      <div 
-        className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 text-xs"
-        title={`Supabase: ${supaStatusLabel(supa.enabled, supa.status, i18n.language || 'ru')}`}
-      >
-        <div className={`w-2 h-2 rounded-full ${colorDot}`} />
-        <span className="text-gray-600">
-          {supa.enabled ? (supa.status === 'checking' ? '...' : supa.status.toUpperCase()) : 'OFF'}
-        </span>
-      </div>
-    )
-  }
-
-  if (booting) {
+  if (appState.booting) {
     return <LoadingOverlay />
   }
 
+  if (appState.error) {
+    return (
+      <ErrorFallback 
+        error={appState.error} 
+        resetError={() => setAppState({ booting: false, error: null })}
+      />
+    )
+  }
+
   return (
-    <>
-      {/* ПОЛНЫЙ ЭКРАН LAYOUT */}
-      <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-[var(--bg-from,#f8fafc)] to-[var(--bg-to,#eff6ff)]">
+    <AppErrorBoundary fallback={ErrorFallback}>
+      <ToasterProvider />
+      
+      {/* Main Application Layout Container */}
+      <div className="app-layout-container">
         
-        {/* Header - фиксированный сверху */}
-        <header className="h-16 bg-white/80 backdrop-blur-lg border-b border-gray-200/70 flex items-center justify-between px-4 sm:px-6 relative z-30">
-          {/* Левый блок */}
+        {/* Desktop Sidebar - Fixed Position */}
+        <aside 
+          className="sidebar-desktop hidden md:flex"
+          role="navigation"
+          aria-label="Основная навигация"
+        >
+          {/* Logo Section */}
+          <div className="sidebar-logo-section">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-xl text-white flex items-center justify-center shadow-md"
+                style={{ backgroundColor: 'var(--accent-600, #2563eb)' }}
+                aria-hidden="true"
+              >
+                <Droplets size={24} />
+              </div>
+              <div>
+                <div className="text-lg font-extrabold text-gray-900 tracking-tight">
+                  WASSER PRO
+                </div>
+                <div className="text-sm text-gray-500">
+                  Управление витриной и прайсом
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Navigation Container */}
+          <nav 
+            className="sidebar-nav-container"
+            role="menu"
+            aria-label="Разделы приложения"
+          >
+            {navItems.map((item, index) => (
+              <SidebarLink
+                key={item.to}
+                to={item.to}
+                i18nKey={item.i18nKey}
+                icon={item.icon}
+                active={activePath === item.to}
+                ariaLabel={`${item.ariaLabel || labelFallback(item.i18nKey, i18n.language || 'ru')} (Alt+${index + 1})`}
+              />
+            ))}
+          </nav>
+          
+          {/* Footer Section */}
+          <div className="sidebar-footer-section">
+            <div className="text-xs text-gray-500">
+              © {new Date().getFullYear()} WASSER PRO
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              v{process.env.REACT_APP_VERSION || '1.0.0'}
+            </div>
+          </div>
+        </aside>
+
+        {/* Mobile Sidebar Overlay */}
+        {sidebarOpen && (
+          <>
+            <div 
+              className="mobile-sidebar-overlay md:hidden"
+              onClick={closeSidebar}
+              aria-hidden="true"
+            />
+            
+            <div className="mobile-sidebar md:hidden">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-10 h-10 rounded-lg text-white flex items-center justify-center"
+                    style={{ backgroundColor: 'var(--accent-600, #2563eb)' }}
+                    aria-hidden="true"
+                  >
+                    <Droplets size={20} />
+                  </div>
+                  <div className="font-bold text-gray-900">WASSER PRO</div>
+                </div>
+                <button
+                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors"
+                  onClick={closeSidebar}
+                  aria-label="Закрыть меню"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <nav className="flex-1 p-4 space-y-2 overflow-y-auto" role="menu">
+                {navItems.map((item) => (
+                  <SidebarLink
+                    key={item.to}
+                    to={item.to}
+                    i18nKey={item.i18nKey}
+                    icon={item.icon}
+                    active={activePath === item.to}
+                    onClick={closeSidebar}
+                    ariaLabel={item.ariaLabel}
+                  />
+                ))}
+              </nav>
+              
+              <div className="p-4 border-t border-gray-200 text-center text-xs text-gray-500">
+                © {new Date().getFullYear()} WASSER PRO
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Header with Correct Positioning */}
+        <header 
+          className="header-with-sidebar"
+          role="banner"
+        >
+          {/* Left Section */}
           <div className="flex items-center gap-3">
             <button
-              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors"
+              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
               onClick={openSidebar}
-              aria-label="Открыть меню"
+              aria-label="Открыть главное меню"
+              aria-expanded={sidebarOpen}
+              aria-controls="mobile-sidebar"
             >
               <Menu size={18} />
             </button>
             <h1 className="text-lg sm:text-xl font-bold text-gray-900">
-              {t(titleKey, { defaultValue: labelFallback(titleKey, i18n.language || 'ru') })}
+              {t(titleKey, { 
+                defaultValue: labelFallback(titleKey, i18n.language || 'ru') 
+              })}
             </h1>
           </div>
 
-          {/* Правый блок */}
-          <div className="flex items-center gap-2">
-            {renderSupaPill()}
-            <div className="hidden sm:block text-xs sm:text-sm text-gray-500">{nowString}</div>
+          {/* Right Section */}
+          <div className="flex items-center gap-3">
+            <SupabaseStatusIndicator state={supabaseState} />
+            <time 
+              className="hidden sm:block text-xs sm:text-sm text-gray-500 font-mono"
+              dateTime={new Date().toISOString()}
+              title="Текущее время"
+            >
+              {currentTime}
+            </time>
             <LanguageSwitcher />
             <ThemeToggle />
             <AccentThemeSwitcher />
           </div>
         </header>
 
-        {/* Основной контейнер - ПОЛНАЯ ВЫСОТА без header */}
-        <div className="h-[calc(100vh-4rem)] flex">
-          
-          {/* SIDEBAR - ПОЛНАЯ ВЫСОТА */}
-          <aside className="hidden md:flex w-80 bg-white/90 backdrop-blur-lg border-r border-gray-200/70 flex-col">
-            {/* Логотип */}
-            <div className="p-6 border-b border-gray-200/70">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-xl text-white flex items-center justify-center shadow-md"
-                  style={{ backgroundColor: 'var(--accent-600)' }}
+        {/* Main Content Area with Correct Positioning */}
+        <main 
+          className="main-content-with-sidebar"
+          role="main"
+          aria-label="Основное содержимое"
+        >
+          <div className="h-full overflow-y-auto">
+            <div className="p-6 min-h-full">
+              <Suspense fallback={<LoadingFallback />}>
+                <ErrorBoundary 
+                  title="Ошибка страницы" 
+                  message="Попробуйте обновить страницу или вернуться позже."
                 >
-                  <Droplets size={24} />
-                </div>
-                <div>
-                  <div className="text-lg font-extrabold text-gray-900 tracking-tight">WASSER PRO</div>
-                  <div className="text-sm text-gray-500">Управление витриной и прайсом</div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Навигация - растягивается */}
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-              {navItems.map((item) => (
-                <SidebarLink
-                  key={item.to}
-                  to={item.to}
-                  i18nKey={item.i18nKey}
-                  icon={item.icon}
-                  active={activePath === item.to}
-                />
-              ))}
-            </nav>
-            
-            {/* Footer - внизу */}
-            <div className="p-4 border-t border-gray-200/70 text-center text-sm text-gray-500">
-              © {new Date().getFullYear()} WASSER PRO
-            </div>
-          </aside>
-
-          {/* Mobile Sidebar */}
-          {sidebarOpen && (
-            <>
-              <div 
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 md:hidden"
-                onClick={closeSidebar}
-              />
-              
-              <div className="fixed inset-y-0 left-0 w-80 bg-white/95 backdrop-blur-lg border-r border-gray-200 shadow-xl z-50 md:hidden flex flex-col">
-                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-10 h-10 rounded-lg text-white flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--accent-600)' }}
-                    >
-                      <Droplets size={20} />
-                    </div>
-                    <div className="font-bold text-gray-900">WASSER PRO</div>
-                  </div>
-                  <button
-                    className="p-2 rounded-lg hover:bg-gray-100 text-gray-700"
-                    onClick={closeSidebar}
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-                
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                  {navItems.map((item) => (
-                    <SidebarLink
-                      key={item.to}
-                      to={item.to}
-                      i18nKey={item.i18nKey}
-                      icon={item.icon}
-                      active={activePath === item.to}
-                      onClick={closeSidebar}
-                    />
-                  ))}
-                </nav>
-                
-                <div className="p-4 border-t border-gray-200 text-center text-sm text-gray-500">
-                  © {new Date().getFullYear()}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* CONTENT - ПОЛНАЯ ШИРИНА ОСТАВШЕГОСЯ ПРОСТРАНСТВА */}
-          <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-6">
-                {/* УБРАНО max-w-6xl - контент на всю ширину! */}
-                <ErrorBoundary title="Ошибка на странице" message="Попробуйте обновить или вернуться позже.">
                   <Outlet />
                 </ErrorBoundary>
-              </div>
+              </Suspense>
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
-    </>
+    </AppErrorBoundary>
   )
 })
+
+AppShell.displayName = 'AppShell'
 
 export default AppShell
