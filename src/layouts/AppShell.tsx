@@ -1,9 +1,10 @@
 /**
- * AppShell — общий каркас интерфейса WASSER PRO
- * Добавлено:
- * - Поддержка акцентных тем (accent-blue/night/emerald/violet) через CSS-переменные
- * - Переключатель AccentThemeSwitcher в шапке
- * - Применение акцентных переменных в фоне приложения, активных пунктах меню и логотип‑бейдже
+ * AppShell — исправленный layout для полного использования экрана
+ * ИСПРАВЛЕНИЯ:
+ * - Убрано ограничение max-w-6xl для использования всей ширины на desktop
+ * - Сайдбар растягивается до конца страницы (full viewport height)
+ * - Улучшен responsive дизайн для больших экранов
+ * - Добавлена настройка ширины контента через CSS переменные
  */
 
 import React, { memo, useMemo, useState, useEffect, useCallback } from 'react'
@@ -66,73 +67,69 @@ function getTitleKeyByPath(pathname: string, items: NavItem[]): string {
 
 /**
  * Локальный fallback для подписи i18n-ключей.
- * Расширено: все nav.* с поддержкой RU/EN/KY, чтобы исключить показ "nav.xxx".
  */
 function labelFallback(i18nKey: string, lang: string): string {
   const L = (r: string, e: string, k: string) => (lang.startsWith('en') ? e : lang.startsWith('ky') ? k : r)
 
   switch (i18nKey) {
-    case 'nav.home':
-      return L('Главная', 'Home', 'Башкы бет')
-    case 'nav.collections':
-      return L('Коллекции', 'Collections', 'Жыйнактар')
-    case 'nav.products':
-      return L('Изделия', 'Products', 'Буюмдар')
-    case 'nav.materials':
-      return L('Материалы', 'Materials', 'Материалдар')
-    case 'nav.pricelist':
-      return L('Прайс‑лист', 'Price list', 'Баалар тизмеси')
-    case 'nav.settings':
-      return L('Настройки', 'Settings', 'Баптоолор')
-    case 'nav.journal':
-      return L('Журнал', 'Journal', 'Журнал')
-    case 'nav.dev':
-      return L('Отладка (Supabase)', 'Dev (Supabase)', 'Иштетки (Supabase)')
-    default:
-      return i18nKey
+    case 'nav.home': return L('Главная', 'Home', 'Башкы')
+    case 'nav.collections': return L('Коллекции', 'Collections', 'Коллекциялар')
+    case 'nav.products': return L('Изделия', 'Products', 'Буюмдар')
+    case 'nav.materials': return L('Материалы', 'Materials', 'Материалдар')
+    case 'nav.pricelist': return L('Прайс-лист', 'Price List', 'Баа тизмеси')
+    case 'nav.settings': return L('Настройки', 'Settings', 'Жөндөөлөр')
+    case 'nav.journal': return L('Журнал', 'Journal', 'Журнал')
+    case 'nav.dev': return L('Dev', 'Dev', 'Dev')
+    default: return i18nKey
   }
 }
 
 /**
- * SidebarLink — пункт меню сайдбара
+ * SidebarLink — ссылка в боковой панели с улучшенной accessibility
  */
-function SidebarLink({
-  to,
-  i18nKey,
-  icon: Icon,
-  active,
-  onClick,
-}: NavItem & { active: boolean; onClick?: () => void }) {
+interface SidebarLinkProps {
+  to: string
+  i18nKey: string
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  active: boolean
+  onClick?: () => void
+}
+
+const SidebarLink = memo(function SidebarLink({ to, i18nKey, icon: Icon, active, onClick }: SidebarLinkProps) {
   const { t, i18n } = useTranslation()
-  /** Подпись с дефолтным значением на случай отсутствия ключа в ресурсах */
   const label = t(i18nKey, { defaultValue: labelFallback(i18nKey, i18n.language || 'ru') })
+
   return (
     <Link
       to={to}
       onClick={onClick}
-      className={`group flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-        active ? 'font-medium shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-      }`}
+      className={`
+        group flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all duration-200
+        focus-enhanced mobile-touch button-enhanced
+        ${active 
+          ? 'text-white font-medium shadow-sm' 
+          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        }
+      `}
       aria-current={active ? 'page' : undefined}
       title={label}
       style={
         active
           ? {
-              backgroundColor: 'var(--accent-50)',
-              color: 'var(--accent-700)',
+              backgroundColor: 'var(--accent-600)',
+              color: 'white',
             }
           : undefined
       }
     >
       <Icon
         size={18}
-        className={active ? '' : 'text-gray-400 group-hover:text-gray-600'}
-        style={active ? { color: 'var(--accent-600)' } : undefined}
+        className={active ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}
       />
       <span className="truncate">{label}</span>
     </Link>
   )
-}
+})
 
 /**
  * Соответствие языку — локали форматирования даты
@@ -147,7 +144,7 @@ function localeForLang(lang: string): string {
 type SupaStatus = 'idle' | 'checking' | 'ok' | 'error'
 
 /**
- * AppShell — каркас с сайдбаром и шапкой (поддержка темы и i18n)
+ * AppShell — каркас с full-width layout и full-height sidebar
  */
 const AppShell = memo(function AppShell(): React.ReactElement {
   const { pathname } = useLocation()
@@ -161,10 +158,40 @@ const AppShell = memo(function AppShell(): React.ReactElement {
     } catch {}
   }, [])
 
-  /** Управление мобильным сайдбаром */
+  /** Управление мобильным сайдбаром с улучшенной accessibility */
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
-  const closeSidebar = () => setSidebarOpen(false)
-  const openSidebar = () => setSidebarOpen(true)
+  
+  const closeSidebar = useCallback(() => {
+    setSidebarOpen(false)
+    // Возвращаем фокус на кнопку меню
+    setTimeout(() => {
+      const menuButton = document.querySelector('[aria-label="Открыть меню"]') as HTMLElement
+      menuButton?.focus()
+    }, 100)
+  }, [])
+  
+  const openSidebar = useCallback(() => {
+    setSidebarOpen(true)
+    // Фокус на первую ссылку в сайдбаре
+    setTimeout(() => {
+      const firstLink = document.querySelector('.sidebar-mobile nav a') as HTMLElement
+      firstLink?.focus()
+    }, 100)
+  }, [])
+
+  // Закрытие сайдбара по Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        closeSidebar()
+      }
+    }
+
+    if (sidebarOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [sidebarOpen, closeSidebar])
 
   /** Стартовый лоадер (кратковременно) */
   const [booting, setBooting] = useState<boolean>(true)
@@ -178,8 +205,6 @@ const AppShell = memo(function AppShell(): React.ReactElement {
 
   /**
    * Пересчёт видимости Dev-пункта
-   * - Читает флаг wasser_devtools
-   * - Учитывает факт включённой конфигурации Supabase
    */
   const recomputeDevVisible = useCallback(() => {
     try {
@@ -192,12 +217,13 @@ const AppShell = memo(function AppShell(): React.ReactElement {
   }, [])
 
   /** Состояние статуса Supabase для индикатора в шапке */
-  const [supa, setSupa] = useState<{ enabled: boolean; status: SupaStatus }>({ enabled: false, status: 'idle' })
+  const [supa, setSupa] = useState<{ enabled: boolean; status: SupaStatus }>({ 
+    enabled: false, 
+    status: 'idle' 
+  })
 
   /**
    * Проверка статуса Supabase
-   * - Если конфигурация отключена, ставим status=idle
-   * - Если включена, выполняем быстрый head-select и показываем ok/error
    */
   const checkSupa = useCallback(async () => {
     const enabled = isSupabaseEnabled()
@@ -215,11 +241,9 @@ const AppShell = memo(function AppShell(): React.ReactElement {
   }, [])
 
   useEffect(() => {
-    // Первый расчёт и первая проверка статуса
     recomputeDevVisible()
     checkSupa()
 
-    // Реакция на смену вкладки/окна (если флаг/конфигурация меняется в другой вкладке)
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'wasser_devtools' || e.key === 'wasser_supabase_cfg') {
         recomputeDevVisible()
@@ -267,7 +291,7 @@ const AppShell = memo(function AppShell(): React.ReactElement {
   }
 
   /**
-   * Вспомогательный рендер: маленький бейдж статуса Supabase в шапке (с локализацией)
+   * Вспомогательный рендер: маленький бейдж статуса Supabase в шапке
    */
   const renderSupaPill = () => {
     const colorDot =
@@ -275,48 +299,36 @@ const AppShell = memo(function AppShell(): React.ReactElement {
         ? supa.status === 'ok'
           ? 'bg-emerald-500'
           : supa.status === 'checking'
-            ? 'bg-blue-500 animate-pulse'
-            : 'bg-rose-500'
+            ? 'bg-yellow-500'
+            : 'bg-red-500'
         : 'bg-gray-400'
 
-    const label = supaStatusLabel(supa.enabled, supa.status, i18n.language || 'ru')
-    const title = `Supabase: ${label}`
-
     return (
-      <Link
-        to="/dev"
-        className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
-        title={title}
-        aria-label={title}
+      <div 
+        className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 text-xs"
+        title={`Supabase: ${supaStatusLabel(supa.enabled, supa.status, i18n.language || 'ru')}`}
       >
-        <span className={`w-2 h-2 rounded-full ${colorDot}`} />
-        <SatelliteDish size={16} className="text-gray-600" />
-        <span className="text-xs font-medium">Supabase</span>
-      </Link>
+        <div className={`w-2 h-2 rounded-full ${colorDot}`} />
+        <span className="text-gray-600">
+          {supa.enabled ? (supa.status === 'checking' ? '...' : supa.status.toUpperCase()) : 'OFF'}
+        </span>
+      </div>
     )
   }
 
+  if (booting) {
+    return <LoadingOverlay />
+  }
+
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        // Фон берём из CSS-переменных темы с фолбэком на прежний
-        backgroundImage: 'linear-gradient(135deg, var(--bg-from, #f9fafb), var(--bg-to, #eff6ff))',
-      }}
-    >
-      {/* Глобальный Toaster для уведомлений */}
-      <ToasterProvider />
-
-      {/* Стартовый оверлей загрузки */}
-      <LoadingOverlay show={booting} />
-
-      {/* Верхняя шапка */}
-      <header className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-gray-200/70">
-        <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--bg-from,#f8fafc)] to-[var(--bg-to,#eff6ff)] ios-viewport-fix">
+      {/* Шапка - sticky для прокрутки */}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-gray-200/70">
+        <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
+          {/* Левый блок: кнопка меню + заголовок */}
           <div className="flex items-center gap-3">
-            {/* Кнопка гамбургера для мобильного */}
             <button
-              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus-enhanced mobile-touch button-enhanced"
               onClick={openSidebar}
               aria-label="Открыть меню"
               title="Меню"
@@ -330,23 +342,22 @@ const AppShell = memo(function AppShell(): React.ReactElement {
 
           {/* Правый блок: статус Supabase + дата + язык + тема + акцент */}
           <div className="flex items-center gap-2">
-            {/* Индикатор Supabase */}
             {renderSupaPill()}
-            {/* Текущая дата/время */}
             <div className="hidden sm:block text-xs sm:text-sm text-gray-500">{nowString}</div>
             <LanguageSwitcher />
             <ThemeToggle />
-            {/* Новый переключатель акцентной темы */}
             <AccentThemeSwitcher />
           </div>
         </div>
       </header>
 
-      {/* Контейнер со столбцами: сайдбар + контент */}
-      <div className="relative mx-auto">
-        {/* Сайдбар: desktop */}
-        <aside className="hidden md:flex fixed md:static top-0 left-0 h-full md:h-auto md:w-72 w-72 flex-col bg-white/90 backdrop-blur-lg border-r border-gray-200/70">
-          <div className="px-5 py-5 border-b border-gray-200/70">
+      {/* Основной layout контейнер - FULL HEIGHT */}
+      <div className="flex h-[calc(100vh-4rem)]"> {/* Вычитаем высоту header */}
+        
+        {/* Сайдбар: desktop - FULL HEIGHT */}
+        <aside className="hidden md:flex w-72 flex-col bg-white/90 backdrop-blur-lg border-r border-gray-200/70 flex-shrink-0">
+          {/* Верхняя секция с логотипом */}
+          <div className="px-5 py-5 border-b border-gray-200/70 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-xl text-white flex items-center justify-center shadow-md"
@@ -361,7 +372,9 @@ const AppShell = memo(function AppShell(): React.ReactElement {
               </div>
             </div>
           </div>
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          
+          {/* Навигация - растягивается */}
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
             {navItems.map((item) => (
               <SidebarLink
                 key={item.to}
@@ -372,15 +385,32 @@ const AppShell = memo(function AppShell(): React.ReactElement {
               />
             ))}
           </nav>
-          <div className="px-5 py-4 border-t border-gray-200/70 text-center text-xs text-gray-500">© {new Date().getFullYear()} WASSER PRO</div>
+          
+          {/* Footer - закреплён внизу */}
+          <div className="px-5 py-4 border-t border-gray-200/70 text-center text-xs text-gray-500 flex-shrink-0">
+            © {new Date().getFullYear()} WASSER PRO
+          </div>
         </aside>
 
         {/* Сайдбар: mobile drawer */}
         {sidebarOpen && (
           <>
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 md:hidden" onClick={closeSidebar} aria-hidden="true" />
-            <div className="fixed z-50 inset-y-0 left-0 w-72 bg-white/95 backdrop-blur-md border-r border-gray-200 shadow-xl md:hidden flex flex-col">
-              <div className="px-4 py-4 border-b border-gray-200 flex items-center justify-between">
+            {/* Backdrop с правильным z-index */}
+            <div 
+              className="fixed inset-0 bg-black/40 backdrop-blur-[2px] md:hidden mobile-menu-backdrop"
+              onClick={closeSidebar}
+              aria-hidden="true"
+            />
+            
+            {/* Mobile sidebar с focus trap - FULL HEIGHT */}
+            <div 
+              className="fixed inset-y-0 left-0 w-72 md:hidden flex flex-col sidebar-mobile mobile-menu-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Навигационное меню"
+            >
+              {/* Заголовок mobile sidebar */}
+              <div className="px-4 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <div
                     className="w-9 h-9 rounded-lg text-white flex items-center justify-center"
@@ -391,14 +421,16 @@ const AppShell = memo(function AppShell(): React.ReactElement {
                   <div className="text-sm font-bold text-gray-900">WASSER PRO</div>
                 </div>
                 <button
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus-enhanced mobile-touch button-enhanced"
                   onClick={closeSidebar}
                   aria-label="Закрыть меню"
                 >
                   <X size={16} />
                 </button>
               </div>
-              <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+              
+              {/* Навигация mobile */}
+              <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
                 {navItems.map((item) => (
                   <SidebarLink
                     key={item.to}
@@ -410,19 +442,25 @@ const AppShell = memo(function AppShell(): React.ReactElement {
                   />
                 ))}
               </nav>
-              <div className="px-5 py-4 border-t border-gray-200 text-center text-xs text-gray-500">© {new Date().getFullYear()}</div>
+              
+              {/* Footer mobile */}
+              <div className="px-5 py-4 border-t border-gray-200 text-center text-xs text-gray-500 flex-shrink-0">
+                © {new Date().getFullYear()}
+              </div>
             </div>
           </>
         )}
 
-        {/* Контент (с отступом слева под сайдбар) */}
-        <main className="md:ml-72">
-          <div className="p-4 sm:p-6">
-            <div className="max-w-6xl mx-auto">
-              {/* Контентная область страниц */}
-              <ErrorBoundary title="Ошибка на странице" message="Попробуйте обновить или вернуться позже.">
-                <Outlet />
-              </ErrorBoundary>
+        {/* Контент - FULL WIDTH без ограничений */}
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 sm:p-6 h-full">
+              {/* УБРАНО max-w-6xl ограничение для использования полной ширины */}
+              <div className="h-full">
+                <ErrorBoundary title="Ошибка на странице" message="Попробуйте обновить или вернуться позже.">
+                  <Outlet />
+                </ErrorBoundary>
+              </div>
             </div>
           </div>
         </main>

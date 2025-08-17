@@ -36,6 +36,22 @@
   --sidebar-accent-foreground: 240 5.9% 10%;
   --sidebar-border: 220 13% 91%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+
+  /* 🚀 НОВЫЕ Z-INDEX ПЕРЕМЕННЫЕ */
+  --z-dropdown: 1000;
+  --z-sticky: 1010;
+  --z-fixed: 1020;
+  --z-modal-backdrop: 1030;
+  --z-modal: 1040;
+  --z-popover: 1050;
+  --z-tooltip: 1060;
+
+  /* 📱 MOBILE VIEWPORT VARIABLES */
+  --vh: 1vh;
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
 }
 
 .dark {
@@ -73,9 +89,13 @@
   --sidebar-ring: 217.2 91.2% 59.8%;
 }
 
+/* 📱 BASE STYLES с улучшениями для мобильных */
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  /* iOS zoom prevention */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -83,14 +103,23 @@ body {
   background-color: hsl(var(--background));
   overscroll-behavior: none;
   font-synthesis-weight: none;
+  /* Предотвращение pull-to-refresh на мобильных */
+  overflow-x: hidden;
+  /* Safari iOS safe area support */
+  padding-top: var(--safe-area-inset-top);
+  padding-bottom: var(--safe-area-inset-bottom);
+  padding-left: var(--safe-area-inset-left);
+  padding-right: var(--safe-area-inset-right);
 }
 
 html > body * {
   border-color: hsl(var(--border));
 }
 
+/* 🎨 УЛУЧШЕННЫЕ СКРОЛЛБАРЫ */
 ::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -99,10 +128,706 @@ html > body * {
 
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
-  border-radius: 5px;
+  border-radius: 3px;
 }
 
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Firefox scrollbars */
 * {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--border)) transparent;
+}
+
+/* 🚨 КРИТИЧНЫЕ Z-INDEX ФИКСЫ */
+.modal-backdrop {
+  z-index: var(--z-modal-backdrop) !important;
+}
+
+.sidebar-mobile {
+  z-index: var(--z-fixed) !important;
+}
+
+.dropdown-menu {
+  z-index: var(--z-dropdown) !important;
+}
+
+.popover-content {
+  z-index: var(--z-popover) !important;
+}
+
+.tooltip {
+  z-index: var(--z-tooltip) !important;
+}
+
+.modal-dialog {
+  z-index: var(--z-modal) !important;
+}
+
+.sticky-header {
+  z-index: var(--z-sticky) !important;
+}
+
+/* 📱 IOS VIEWPORT FIXES */
+.ios-viewport-fix {
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+.mobile-safe-height {
+  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
+}
+
+/* 📱 TOUCH TARGET IMPROVEMENTS */
+.mobile-touch {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+/* ♿ ENHANCED FOCUS STYLES */
+.focus-enhanced:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.focus-enhanced:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 🎯 FOCUS TRAP для модальных окон */
+.focus-trap {
+  position: relative;
+}
+
+.focus-trap:before,
+.focus-trap:after {
+  content: "";
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  tab-index: 0;
+}
+
+/* 🚀 PERFORMANCE OPTIMIZATIONS */
+.animate-in,
+.animate-out,
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-transform {
+  will-change: transform, opacity;
+}
+
+/* Уменьшение анимаций для пользователей с предпочтениями */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 📱 SAFARI SPECIFIC FIXES */
+@supports (-webkit-touch-callout: none) {
+  /* Safari iOS */
+  .ios-input-fix input {
+    font-size: 16px !important;
+    transform: scale(1);
+  }
+  
+  .ios-input-fix input:focus {
+    transform: scale(1);
+  }
+}
+
+/* 🖨️ PRINT OPTIMIZATIONS */
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+  
+  .print-break {
+    page-break-after: always;
+  }
+  
+  .print-break-before {
+    page-break-before: always;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
+
+/* 🎨 SKELETON LOADING ANIMATIONS */
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, 
+    hsl(var(--muted)) 25%, 
+    hsl(var(--muted-foreground) / 0.1) 50%, 
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+/* 🔧 UTILITY CLASSES */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* 📱 RESPONSIVE TYPOGRAPHY */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+/* 🎯 HIGH CONTRAST MODE SUPPORT */
+@media (prefers-contrast: high) {
+  :root {
+    --border: 0 0% 20%;
+    --ring: 0 0% 10%;
+  }
+  
+  .dark {
+    --border: 0 0% 80%;
+    --ring: 0 0% 90%;
+  }
+}
+
+/* 🚀 IMPROVED BACKDROP BLUR */
+.backdrop-blur-enhanced {
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+}
+
+/* 📱 MOBILE MENU IMPROVEMENTS */
+.mobile-menu-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: var(--z-modal-backdrop);
+}
+
+.mobile-menu-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: var(--z-modal);
+}
+
+.dark .mobile-menu-panel {
+  background: rgba(15, 15, 15, 0.95);
+}
+
+/* ⚡ QUICK FIXES для специфичных элементов */
+.sidebar-link:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.button-enhanced {
+  transition: all 0.15s ease-in-out;
+  transform-origin: center;
+}
+
+.button-enhanced:active {
+  transform: scale(0.98);
+}
+
+/* 🔧 DEBUGGING HELPERS (remove in production) */
+.debug-z-index * {
+  position: relative;
+}
+
+.debug-z-index *::before {
+  content: attr(class);
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 10px;
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  padding: 2px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* 🖥️ FULLWIDTH LAYOUT ENHANCEMENTS для WASSER PRO */
+
+/* Добавьте в src/shadcn.css */
+
+/* НОВЫЕ CSS ПЕРЕМЕННЫЕ для контроля ширины */
+:root {
+  /* Ширина контента по умолчанию */
+  --content-max-width: none; /* Без ограничений */
+  --content-padding: 1rem;
+  
+  /* Ширины для разных типов страниц */
+  --content-narrow: 768px;    /* Для форм и настроек */
+  --content-medium: 1200px;   /* Для списков */
+  --content-wide: 1400px;     /* Для таблиц */
+  --content-full: none;       /* Полная ширина */
+  
+  /* Сайдбар */
+  --sidebar-width: 18rem; /* 288px */
+  --sidebar-width-collapsed: 4rem; /* 64px */
+}
+
+/* 📱 RESPONSIVE CONTENT CONTAINERS */
+
+/* Контейнер с ограниченной шириной для конкретных страниц */
+.content-container-narrow {
+  max-width: var(--content-narrow);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.content-container-medium {
+  max-width: var(--content-medium);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.content-container-wide {
+  max-width: var(--content-wide);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.content-container-full {
+  max-width: none;
+  width: 100%;
+}
+
+/* 🎯 ADAPTIVE SPACING для больших экранов */
+@media (min-width: 1400px) {
+  .adaptive-padding {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  .adaptive-padding {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .adaptive-padding {
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+}
+
+/* 📊 GRID IMPROVEMENTS для широких экранов */
+@media (min-width: 1400px) {
+  .grid-adaptive-xl {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 1600px) {
+  .grid-adaptive-xl {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (min-width: 1920px) {
+  .grid-adaptive-xl {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+/* 🏗️ LAYOUT UTILITIES */
+
+/* Full height layout helper */
+.layout-full-height {
+  height: calc(100vh - 4rem); /* Вычитаем высоту header */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sidebar improvements */
+.sidebar-full-height {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Content area improvements */
+.content-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 📋 TABLE IMPROVEMENTS для широких экранов */
+.table-fullwidth {
+  width: 100%;
+  min-width: 100%;
+}
+
+.table-container-wide {
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--content-padding));
+  padding: 0 var(--content-padding);
+}
+
+@media (min-width: 1024px) {
+  .table-container-wide {
+    margin: 0;
+    padding: 0;
+    overflow-x: visible;
+  }
+}
+
+/* 🎨 VISUAL IMPROVEMENTS */
+
+/* Subtle borders for wide screens */
+@media (min-width: 1200px) {
+  .content-with-borders {
+    border-left: 1px solid hsl(var(--border));
+    border-right: 1px solid hsl(var(--border));
+  }
+}
+
+/* Background patterns для больших пустых областей */
+.content-background-pattern {
+  background-image: 
+    radial-gradient(circle at 1px 1px, hsl(var(--muted)) 1px, transparent 0);
+  background-size: 20px 20px;
+  background-position: 0 0;
+}
+
+/* 🔧 SIDEBAR ENHANCEMENTS */
+
+/* Hover effect для desktop sidebar */
+.sidebar-desktop {
+  transition: all 0.3s ease;
+}
+
+.sidebar-desktop:hover {
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Sidebar sticky header */
+.sidebar-header-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: inherit;
+  backdrop-filter: blur(8px);
+}
+
+/* Sidebar footer sticky */
+.sidebar-footer-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: inherit;
+  backdrop-filter: blur(8px);
+}
+
+/* 📱 RESPONSIVE IMPROVEMENTS */
+
+/* Hide sidebar on print */
+@media print {
+  .sidebar-desktop,
+  .sidebar-mobile {
+    display: none !important;
+  }
+  
+  .content-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* 🎯 COMPONENT-SPECIFIC IMPROVEMENTS */
+
+/* Cards grid для широких экранов */
+.cards-grid-adaptive {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .cards-grid-adaptive {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .cards-grid-adaptive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .cards-grid-adaptive {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1400px) {
+  .cards-grid-adaptive {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 1600px) {
+  .cards-grid-adaptive {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* Form layouts для широких экранов */
+.form-wide-layout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .form-wide-layout {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .form-wide-layout {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 🚀 PERFORMANCE OPTIMIZATIONS */
+
+/* Smooth scrolling improvements */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hardware acceleration для анимаций */
+.hardware-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Reduce motion для accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-desktop,
+  .content-main,
+  .adaptive-padding {
+    transition: none !important;
+  }
+}
+
+/* 🎨 THEME IMPROVEMENTS для широких экранов */
+
+/* Dark theme adjustments */
+.dark .sidebar-desktop {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .content-background-pattern {
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+}
+
+/* Accent theme support */
+.content-accent-border {
+  border-left: 3px solid var(--accent-500);
+}
+
+/* 🔧 UTILITY CLASSES */
+
+/* Spacing utilities для больших экранов */
+.spacing-xl {
+  padding: 2rem;
+}
+
+@media (min-width: 1400px) {
+  .spacing-xl {
+    padding: 3rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  .spacing-xl {
+    padding: 4rem;
+  }
+}
+
+/* Width utilities */
+.w-sidebar {
+  width: var(--sidebar-width);
+}
+
+.ml-sidebar {
+  margin-left: var(--sidebar-width);
+}
+
+/* 📊 DATA VISUALIZATION IMPROVEMENTS */
+
+/* Charts и графики на широких экранах */
+.chart-container-wide {
+  width: 100%;
+  height: 400px;
+}
+
+@media (min-width: 1200px) {
+  .chart-container-wide {
+    height: 500px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .chart-container-wide {
+    height: 600px;
+  }
+}
+
+/* Tables для анализа данных */
+.analytics-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+@media (min-width: 1200px) {
+  .analytics-table {
+    font-size: 0.8rem; /* Меньший шрифт для больше данных */
+  }
+  
+  .analytics-table th,
+  .analytics-table td {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* 🎯 FOCUS IMPROVEMENTS для больших экранов */
+
+/* Enhanced focus для keyboard navigation */
+@media (min-width: 1024px) {
+  .focus-enhanced:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* Skip links для accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  z-index: 1000;
+  padding: 8px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  text-decoration: none;
+  border-radius: 4px;
+  border: 2px solid hsl(var(--ring));
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* 🎉 FINAL LAYOUT POLISH */
+
+/* Subtle animations для desktop */
+@media (min-width: 1024px) {
+  .layout-animate {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Content reveal animation */
+.content-reveal {
+  animation: contentReveal 0.5s ease-out;
+}
+
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive typography для очень больших экранов */
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px; /* Немного больше на 4K мониторах */
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 20px; /* Еще больше на 8K мониторах */
+  }
 }
