@@ -37,7 +37,7 @@
   --sidebar-border: 220 13% 91%;
   --sidebar-ring: 217.2 91.2% 59.8%;
 
-  /* 🚀 НОВЫЕ Z-INDEX ПЕРЕМЕННЫЕ */
+  /* 🚀 Z-INDEX ПЕРЕМЕННЫЕ */
   --z-dropdown: 1000;
   --z-sticky: 1010;
   --z-fixed: 1020;
@@ -52,6 +52,16 @@
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
+
+  /* 🖥️ ПОЛНОЭКРАННЫЙ LAYOUT ПЕРЕМЕННЫЕ */
+  --content-max-width: none;
+  --content-padding: 1rem;
+  --content-narrow: 768px;
+  --content-medium: 1200px;
+  --content-wide: 1400px;
+  --content-full: none;
+  --sidebar-width: 20rem;
+  --sidebar-width-collapsed: 4rem;
 }
 
 .dark {
@@ -89,11 +99,31 @@
   --sidebar-ring: 217.2 91.2% 59.8%;
 }
 
-/* 📱 BASE STYLES с улучшениями для мобильных */
+/* ===== 🖥️ ПОЛНОЭКРАННЫЙ LAYOUT ===== */
+
+/* КРИТИЧНО: Убираем все отступы для полного экрана */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== 📱 BASE STYLES с улучшениями ===== */
 html {
   scroll-behavior: smooth;
   font-size: 16px;
-  /* iOS zoom prevention */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -103,9 +133,7 @@ body {
   background-color: hsl(var(--background));
   overscroll-behavior: none;
   font-synthesis-weight: none;
-  /* Предотвращение pull-to-refresh на мобильных */
   overflow-x: hidden;
-  /* Safari iOS safe area support */
   padding-top: var(--safe-area-inset-top);
   padding-bottom: var(--safe-area-inset-bottom);
   padding-left: var(--safe-area-inset-left);
@@ -116,23 +144,37 @@ html > body * {
   border-color: hsl(var(--border));
 }
 
-/* 🎨 УЛУЧШЕННЫЕ СКРОЛЛБАРЫ */
+/* ===== 🎨 КРАСИВЫЕ СКРОЛЛБАРЫ ===== */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 /* Firefox scrollbars */
@@ -141,7 +183,7 @@ html > body * {
   scrollbar-color: hsl(var(--border)) transparent;
 }
 
-/* 🚨 КРИТИЧНЫЕ Z-INDEX ФИКСЫ */
+/* ===== 🚨 Z-INDEX ФИКСЫ ===== */
 .modal-backdrop {
   z-index: var(--z-modal-backdrop) !important;
 }
@@ -170,7 +212,7 @@ html > body * {
   z-index: var(--z-sticky) !important;
 }
 
-/* 📱 IOS VIEWPORT FIXES */
+/* ===== 📱 VIEWPORT FIXES ===== */
 .ios-viewport-fix {
   height: 100vh;
   height: calc(var(--vh, 1vh) * 100);
@@ -181,14 +223,14 @@ html > body * {
   min-height: calc(var(--vh, 1vh) * 100);
 }
 
-/* 📱 TOUCH TARGET IMPROVEMENTS */
+/* ===== 📱 TOUCH IMPROVEMENTS ===== */
 .mobile-touch {
   min-height: 44px;
   min-width: 44px;
   touch-action: manipulation;
 }
 
-/* ♿ ENHANCED FOCUS STYLES */
+/* ===== ♿ ACCESSIBILITY IMPROVEMENTS ===== */
 .focus-enhanced:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
@@ -199,182 +241,104 @@ html > body * {
   outline: none;
 }
 
-/* 🎯 FOCUS TRAP для модальных окон */
-.focus-trap {
+/* ===== 🎯 SIDEBAR ENHANCEMENTS ===== */
+.sidebar-enhanced {
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+.sidebar-enhanced:hover {
+  box-shadow: 6px 0 25px rgba(0, 0, 0, 0.12);
+}
+
+.dark .sidebar-enhanced {
+  background: rgba(15, 23, 42, 0.9);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Красивые навигационные ссылки */
+.nav-link {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.nav-link:hover::before {
+  left: 100%;
+}
+
+/* Активная ссылка с анимацией */
+.nav-link-active {
   position: relative;
 }
 
-.focus-trap:before,
-.focus-trap:after {
-  content: "";
+.nav-link-active::after {
+  content: '';
   position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-  tab-index: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  background: var(--accent-600);
+  border-radius: 2px 0 0 2px;
+  animation: slideIn 0.3s ease;
 }
 
-/* 🚀 PERFORMANCE OPTIMIZATIONS */
-.animate-in,
-.animate-out,
-.transition-all,
-.transition-colors,
-.transition-opacity,
-.transition-transform {
-  will-change: transform, opacity;
-}
-
-/* Уменьшение анимаций для пользователей с предпочтениями */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+@keyframes slideIn {
+  from {
+    height: 0%;
+    opacity: 0;
+  }
+  to {
+    height: 60%;
+    opacity: 1;
   }
 }
 
-/* 📱 SAFARI SPECIFIC FIXES */
-@supports (-webkit-touch-callout: none) {
-  /* Safari iOS */
-  .ios-input-fix input {
-    font-size: 16px !important;
-    transform: scale(1);
-  }
-  
-  .ios-input-fix input:focus {
-    transform: scale(1);
-  }
+/* ===== 🎨 HEADER IMPROVEMENTS ===== */
+.header-enhanced {
+  backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
 }
 
-/* 🖨️ PRINT OPTIMIZATIONS */
-@media print {
-  .print-hide {
-    display: none !important;
-  }
-  
-  .print-break {
-    page-break-after: always;
-  }
-  
-  .print-break-before {
-    page-break-before: always;
-  }
-  
-  body {
-    -webkit-print-color-adjust: exact;
-    color-adjust: exact;
-  }
-  
-  @page {
-    size: A4;
-    margin: 12mm;
-  }
+.dark .header-enhanced {
+  background: rgba(15, 15, 15, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* 🎨 SKELETON LOADING ANIMATIONS */
-@keyframes skeleton-loading {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
+/* ===== 🎨 COMPONENT ENHANCEMENTS ===== */
+
+/* Красивые кнопки */
+.btn-enhanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0);
 }
 
-.skeleton {
-  background: linear-gradient(90deg, 
-    hsl(var(--muted)) 25%, 
-    hsl(var(--muted-foreground) / 0.1) 50%, 
-    hsl(var(--muted)) 75%
-  );
-  background-size: 200px 100%;
-  animation: skeleton-loading 1.5s infinite;
+.btn-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
-/* 🔧 UTILITY CLASSES */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--border)) transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 3px;
-}
-
-.text-balance {
-  text-wrap: balance;
-}
-
-.text-pretty {
-  text-wrap: pretty;
-}
-
-/* 📱 RESPONSIVE TYPOGRAPHY */
-@media (max-width: 640px) {
-  html {
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 480px) {
-  html {
-    font-size: 13px;
-  }
-}
-
-/* 🎯 HIGH CONTRAST MODE SUPPORT */
-@media (prefers-contrast: high) {
-  :root {
-    --border: 0 0% 20%;
-    --ring: 0 0% 10%;
-  }
-  
-  .dark {
-    --border: 0 0% 80%;
-    --ring: 0 0% 90%;
-  }
-}
-
-/* 🚀 IMPROVED BACKDROP BLUR */
-.backdrop-blur-enhanced {
-  backdrop-filter: blur(8px) saturate(180%);
-  -webkit-backdrop-filter: blur(8px) saturate(180%);
-}
-
-/* 📱 MOBILE MENU IMPROVEMENTS */
-.mobile-menu-backdrop {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  z-index: var(--z-modal-backdrop);
-}
-
-.mobile-menu-panel {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: var(--z-modal);
-}
-
-.dark .mobile-menu-panel {
-  background: rgba(15, 15, 15, 0.95);
-}
-
-/* ⚡ QUICK FIXES для специфичных элементов */
-.sidebar-link:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: -2px;
-  border-radius: calc(var(--radius) - 2px);
+.btn-enhanced:active {
+  transform: translateY(-1px);
 }
 
 .button-enhanced {
@@ -386,222 +350,75 @@ html > body * {
   transform: scale(0.98);
 }
 
-/* 🔧 DEBUGGING HELPERS (remove in production) */
-.debug-z-index * {
-  position: relative;
+/* Улучшенные карточки */
+.card-enhanced {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.debug-z-index *::before {
-  content: attr(class);
-  position: absolute;
-  top: 0;
-  left: 0;
-  font-size: 10px;
-  background: rgba(255, 0, 0, 0.8);
-  color: white;
-  padding: 2px;
-  z-index: 9999;
-  pointer-events: none;
+.card-enhanced:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
-/* 🖥️ FULLWIDTH LAYOUT ENHANCEMENTS для WASSER PRO */
-
-/* Добавьте в src/shadcn.css */
-
-/* НОВЫЕ CSS ПЕРЕМЕННЫЕ для контроля ширины */
-:root {
-  /* Ширина контента по умолчанию */
-  --content-max-width: none; /* Без ограничений */
-  --content-padding: 1rem;
-  
-  /* Ширины для разных типов страниц */
-  --content-narrow: 768px;    /* Для форм и настроек */
-  --content-medium: 1200px;   /* Для списков */
-  --content-wide: 1400px;     /* Для таблиц */
-  --content-full: none;       /* Полная ширина */
-  
-  /* Сайдбар */
-  --sidebar-width: 18rem; /* 288px */
-  --sidebar-width-collapsed: 4rem; /* 64px */
+.dark .card-enhanced {
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* 📱 RESPONSIVE CONTENT CONTAINERS */
+/* ===== 📊 GRID SYSTEMS - ПОЛНАЯ ШИРИНА ===== */
 
-/* Контейнер с ограниченной шириной для конкретных страниц */
-.content-container-narrow {
-  max-width: var(--content-narrow);
-  margin: 0 auto;
+/* Адаптивные карточки на всю ширину */
+.cards-fullwidth {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
   width: 100%;
 }
 
-.content-container-medium {
-  max-width: var(--content-medium);
-  margin: 0 auto;
-  width: 100%;
-}
-
-.content-container-wide {
-  max-width: var(--content-wide);
-  margin: 0 auto;
-  width: 100%;
-}
-
-.content-container-full {
-  max-width: none;
-  width: 100%;
-}
-
-/* 🎯 ADAPTIVE SPACING для больших экранов */
-@media (min-width: 1400px) {
-  .adaptive-padding {
-    padding-left: 2rem;
-    padding-right: 2rem;
+@media (min-width: 768px) {
+  .cards-fullwidth {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
   }
 }
 
-@media (min-width: 1600px) {
-  .adaptive-padding {
-    padding-left: 3rem;
-    padding-right: 3rem;
+@media (min-width: 1024px) {
+  .cards-fullwidth {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
   }
 }
 
-@media (min-width: 1920px) {
-  .adaptive-padding {
-    padding-left: 4rem;
-    padding-right: 4rem;
+@media (min-width: 1280px) {
+  .cards-fullwidth {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-/* 📊 GRID IMPROVEMENTS для широких экранов */
-@media (min-width: 1400px) {
-  .grid-adaptive-xl {
+@media (min-width: 1536px) {
+  .cards-fullwidth {
     grid-template-columns: repeat(5, 1fr);
   }
 }
 
-@media (min-width: 1600px) {
-  .grid-adaptive-xl {
+@media (min-width: 1920px) {
+  .cards-fullwidth {
     grid-template-columns: repeat(6, 1fr);
   }
 }
 
-@media (min-width: 1920px) {
-  .grid-adaptive-xl {
+@media (min-width: 2560px) {
+  .cards-fullwidth {
     grid-template-columns: repeat(8, 1fr);
+    gap: 3rem;
   }
 }
 
-/* 🏗️ LAYOUT UTILITIES */
-
-/* Full height layout helper */
-.layout-full-height {
-  height: calc(100vh - 4rem); /* Вычитаем высоту header */
-  display: flex;
-  flex-direction: column;
-}
-
-/* Sidebar improvements */
-.sidebar-full-height {
-  height: 100vh;
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Content area improvements */
-.content-scrollable {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* 📋 TABLE IMPROVEMENTS для широких экранов */
-.table-fullwidth {
-  width: 100%;
-  min-width: 100%;
-}
-
-.table-container-wide {
-  overflow-x: auto;
-  margin: 0 calc(-1 * var(--content-padding));
-  padding: 0 var(--content-padding);
-}
-
-@media (min-width: 1024px) {
-  .table-container-wide {
-    margin: 0;
-    padding: 0;
-    overflow-x: visible;
-  }
-}
-
-/* 🎨 VISUAL IMPROVEMENTS */
-
-/* Subtle borders for wide screens */
-@media (min-width: 1200px) {
-  .content-with-borders {
-    border-left: 1px solid hsl(var(--border));
-    border-right: 1px solid hsl(var(--border));
-  }
-}
-
-/* Background patterns для больших пустых областей */
-.content-background-pattern {
-  background-image: 
-    radial-gradient(circle at 1px 1px, hsl(var(--muted)) 1px, transparent 0);
-  background-size: 20px 20px;
-  background-position: 0 0;
-}
-
-/* 🔧 SIDEBAR ENHANCEMENTS */
-
-/* Hover effect для desktop sidebar */
-.sidebar-desktop {
-  transition: all 0.3s ease;
-}
-
-.sidebar-desktop:hover {
-  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.05);
-}
-
-/* Sidebar sticky header */
-.sidebar-header-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: inherit;
-  backdrop-filter: blur(8px);
-}
-
-/* Sidebar footer sticky */
-.sidebar-footer-sticky {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  background: inherit;
-  backdrop-filter: blur(8px);
-}
-
-/* 📱 RESPONSIVE IMPROVEMENTS */
-
-/* Hide sidebar on print */
-@media print {
-  .sidebar-desktop,
-  .sidebar-mobile {
-    display: none !important;
-  }
-  
-  .content-main {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-}
-
-/* 🎯 COMPONENT-SPECIFIC IMPROVEMENTS */
-
-/* Cards grid для широких экранов */
+/* Адаптивные grid для больших экранов */
 .cards-grid-adaptive {
   display: grid;
   gap: 1rem;
@@ -640,69 +457,179 @@ html > body * {
   }
 }
 
-/* Form layouts для широких экранов */
-.form-wide-layout {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: 1fr;
+@media (min-width: 2560px) {
+  .cards-grid-adaptive {
+    grid-template-columns: repeat(8, 1fr);
+  }
 }
 
-@media (min-width: 768px) {
-  .form-wide-layout {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
+/* Dashboard grid */
+.dashboard-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;
+  height: 100%;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 2fr 1fr;
   }
+}
+
+@media (min-width: 1536px) {
+  .dashboard-grid {
+    grid-template-columns: 3fr 2fr 1fr;
+  }
+}
+
+/* ===== 📋 ТАБЛИЦЫ НА ПОЛНУЮ ШИРИНУ ===== */
+.table-fullwidth {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table-container-enhanced {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.table-container-enhanced table {
+  width: 100%;
+  min-width: 100%;
+}
+
+.table-container-enhanced th,
+.table-container-enhanced td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.table-container-enhanced th {
+  background: rgba(0, 0, 0, 0.02);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table-container-enhanced tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.dark .table-container-enhanced {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .table-container-enhanced th {
+  background: rgba(255, 255, 255, 0.02);
+  color: #d1d5db;
+}
+
+.dark .table-container-enhanced td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dark .table-container-enhanced tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.table-container-wide {
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--content-padding));
+  padding: 0 var(--content-padding);
+}
+
+@media (min-width: 1024px) {
+  .table-container-wide {
+    margin: 0;
+    padding: 0;
+    overflow-x: visible;
+  }
+}
+
+/* Analytics таблицы */
+.analytics-table {
+  width: 100%;
+  font-size: 0.875rem;
 }
 
 @media (min-width: 1200px) {
-  .form-wide-layout {
-    grid-template-columns: repeat(3, 1fr);
+  .analytics-table {
+    font-size: 0.8rem;
+  }
+  
+  .analytics-table th,
+  .analytics-table td {
+    padding: 0.5rem 0.75rem;
   }
 }
 
-/* 🚀 PERFORMANCE OPTIMIZATIONS */
-
-/* Smooth scrolling improvements */
-.smooth-scroll {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
+/* ===== 🎯 CONTENT CONTAINERS ===== */
+.content-container-narrow {
+  max-width: var(--content-narrow);
+  margin: 0 auto;
+  width: 100%;
 }
 
-/* Hardware acceleration для анимаций */
-.hardware-accelerated {
-  transform: translateZ(0);
-  will-change: transform;
+.content-container-medium {
+  max-width: var(--content-medium);
+  margin: 0 auto;
+  width: 100%;
 }
 
-/* Reduce motion для accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-desktop,
-  .content-main,
+.content-container-wide {
+  max-width: var(--content-wide);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.content-container-full {
+  max-width: none;
+  width: 100%;
+}
+
+/* ===== 🎯 ADAPTIVE SPACING ===== */
+.adaptive-padding {
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
   .adaptive-padding {
-    transition: none !important;
+    padding: 1.5rem;
   }
 }
 
-/* 🎨 THEME IMPROVEMENTS для широких экранов */
-
-/* Dark theme adjustments */
-.dark .sidebar-desktop {
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+@media (min-width: 1024px) {
+  .adaptive-padding {
+    padding: 2rem;
+  }
 }
 
-.dark .content-background-pattern {
-  background-image: 
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+@media (min-width: 1400px) {
+  .adaptive-padding {
+    padding: 2.5rem;
+  }
 }
 
-/* Accent theme support */
-.content-accent-border {
-  border-left: 3px solid var(--accent-500);
+@media (min-width: 1600px) {
+  .adaptive-padding {
+    padding: 3rem;
+  }
 }
 
-/* 🔧 UTILITY CLASSES */
+@media (min-width: 1920px) {
+  .adaptive-padding {
+    padding: 4rem;
+  }
+}
 
-/* Spacing utilities для больших экранов */
+/* Spacing utilities */
 .spacing-xl {
   padding: 2rem;
 }
@@ -719,64 +646,192 @@ html > body * {
   }
 }
 
-/* Width utilities */
-.w-sidebar {
-  width: var(--sidebar-width);
+/* ===== 🚀 ANIMATIONS & EFFECTS ===== */
+
+/* Плавное появление контента */
+.content-fade-in {
+  animation: contentFadeIn 0.5s ease-out;
 }
 
-.ml-sidebar {
-  margin-left: var(--sidebar-width);
-}
-
-/* 📊 DATA VISUALIZATION IMPROVEMENTS */
-
-/* Charts и графики на широких экранах */
-.chart-container-wide {
-  width: 100%;
-  height: 400px;
-}
-
-@media (min-width: 1200px) {
-  .chart-container-wide {
-    height: 500px;
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (min-width: 1400px) {
-  .chart-container-wide {
-    height: 600px;
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Tables для анализа данных */
-.analytics-table {
-  width: 100%;
-  font-size: 0.875rem;
+.content-reveal {
+  animation: contentReveal 0.5s ease-out;
 }
 
-@media (min-width: 1200px) {
-  .analytics-table {
-    font-size: 0.8rem; /* Меньший шрифт для больше данных */
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== 🎨 PERFORMANCE OPTIMIZATIONS ===== */
+.animate-in,
+.animate-out,
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-transform {
+  will-change: transform, opacity;
+}
+
+.hardware-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 📱 MOBILE OPTIMIZATIONS ===== */
+
+/* Safari iOS fixes */
+@supports (-webkit-touch-callout: none) {
+  .ios-input-fix input {
+    font-size: 16px !important;
+    transform: scale(1);
   }
   
-  .analytics-table th,
-  .analytics-table td {
-    padding: 0.5rem 0.75rem;
+  .ios-input-fix input:focus {
+    transform: scale(1);
   }
 }
 
-/* 🎯 FOCUS IMPROVEMENTS для больших экранов */
+/* Mobile menu improvements */
+.mobile-menu-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: var(--z-modal-backdrop);
+}
 
-/* Enhanced focus для keyboard navigation */
-@media (min-width: 1024px) {
-  .focus-enhanced:focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
-    border-radius: 4px;
+.mobile-menu-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: var(--z-modal);
+}
+
+.dark .mobile-menu-panel {
+  background: rgba(15, 15, 15, 0.95);
+}
+
+/* ===== 📱 RESPONSIVE TYPOGRAPHY ===== */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
   }
 }
 
-/* Skip links для accessibility */
+@media (max-width: 480px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 20px;
+  }
+}
+
+/* ===== 🖨️ PRINT STYLES ===== */
+@media print {
+  .print-hide,
+  .sidebar-enhanced,
+  .header-enhanced {
+    display: none !important;
+  }
+  
+  .print-break {
+    page-break-after: always;
+  }
+  
+  .print-break-before {
+    page-break-before: always;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
+
+/* ===== ♿ ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: high) {
+  :root {
+    --border: 0 0% 20%;
+    --ring: 0 0% 10%;
+  }
+  
+  .dark {
+    --border: 0 0% 80%;
+    --ring: 0 0% 90%;
+  }
+  
+  .card-enhanced {
+    border: 2px solid currentColor;
+  }
+  
+  .table-container-enhanced {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Skip links */
 .skip-link {
   position: absolute;
   top: -40px;
@@ -794,40 +849,205 @@ html > body * {
   top: 6px;
 }
 
-/* 🎉 FINAL LAYOUT POLISH */
-
-/* Subtle animations для desktop */
+/* Enhanced focus для клавиатуры */
 @media (min-width: 1024px) {
-  .layout-animate {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  .focus-enhanced:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
-/* Content reveal animation */
-.content-reveal {
-  animation: contentReveal 0.5s ease-out;
+.sidebar-link:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+  border-radius: calc(var(--radius) - 2px);
 }
 
-@keyframes contentReveal {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* ===== 🔧 UTILITY CLASSES ===== */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Полная ширина контента */
+.w-fullscreen {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+}
+
+.space-optimize {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Width utilities */
+.w-sidebar {
+  width: var(--sidebar-width);
+}
+
+.ml-sidebar {
+  margin-left: var(--sidebar-width);
+}
+
+/* ===== 🎨 SKELETON LOADING ===== */
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  100% {
+    background-position: calc(200px + 100%) 0;
   }
 }
 
-/* Responsive typography для очень больших экранов */
-@media (min-width: 1920px) {
-  html {
-    font-size: 18px; /* Немного больше на 4K мониторах */
+.skeleton {
+  background: linear-gradient(90deg, 
+    hsl(var(--muted)) 25%, 
+    hsl(var(--muted-foreground) / 0.1) 50%, 
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+/* ===== 🎨 VISUAL ENHANCEMENTS ===== */
+
+/* Background patterns */
+.content-background-pattern {
+  background-image: 
+    radial-gradient(circle at 1px 1px, hsl(var(--muted)) 1px, transparent 0);
+  background-size: 20px 20px;
+  background-position: 0 0;
+}
+
+.dark .content-background-pattern {
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+}
+
+/* Gradient overlays */
+.gradient-overlay {
+  position: relative;
+}
+
+.gradient-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 100%);
+  pointer-events: none;
+}
+
+.dark .gradient-overlay::before {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+}
+
+/* Backdrop blur improvements */
+.backdrop-blur-enhanced {
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+}
+
+/* ===== 📊 DATA VISUALIZATION ===== */
+.chart-container-wide {
+  width: 100%;
+  height: 400px;
+}
+
+@media (min-width: 1200px) {
+  .chart-container-wide {
+    height: 500px;
   }
 }
 
-@media (min-width: 2560px) {
-  html {
-    font-size: 20px; /* Еще больше на 8K мониторах */
+@media (min-width: 1400px) {
+  .chart-container-wide {
+    height: 600px;
+  }
+}
+
+/* ===== 🎯 LAYOUT HELPERS ===== */
+.layout-full-height {
+  height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-full-height {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.layout-animate {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== 🎨 THEME ENHANCEMENTS ===== */
+.content-accent-border {
+  border-left: 3px solid var(--accent-500);
+}
+
+/* Borders для wide screens */
+@media (min-width: 1200px) {
+  .content-with-borders {
+    border-left: 1px solid hsl(var(--border));
+    border-right: 1px solid hsl(var(--border));
+  }
+}
+
+/* Form layouts для широких экранов */
+.form-wide-layout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .form-wide-layout {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .form-wide-layout {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
